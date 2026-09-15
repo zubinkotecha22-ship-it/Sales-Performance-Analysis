@@ -1,1 +1,29 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sales Performance Analysis</title><style>body{margin:0;font:16px system-ui;background:#07171a;color:#e8f5f2}main{max-width:1000px;margin:auto;padding:48px 24px}h1{font-size:clamp(2.4rem,7vw,4.5rem)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:#103037;border-radius:14px;padding:20px}.value{font-size:2rem;color:#5eead4}table{width:100%;border-collapse:collapse;margin-top:28px}td,th{padding:10px;border-bottom:1px solid #28515a;text-align:left}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style></head><body><main><p>DATA ANALYTICS · LIVE CSV EXPLORER</p><h1>Sales Performance Analysis</h1><p>This page reads the committed retail-sales CSV directly in your browser—no server or database required.</p><section class="grid"><div class="card"><b>Revenue</b><div class="value" id="sales">Loading…</div></div><div class="card"><b>Orders</b><div class="value" id="orders">Loading…</div></div><div class="card"><b>Products</b><div class="value" id="products">Loading…</div></div></section><h2>Revenue by region</h2><table><thead><tr><th>Region</th><th>Sales</th></tr></thead><tbody id="regions"></tbody></table><p><a href="https://github.com/zubinkotecha22-ship-it/Sales-Performance-Analysis">View source on GitHub ↗</a></p></main><script>fetch('train.csv').then(r=>r.text()).then(t=>{let rows=t.trim().split(/\r?\n/).slice(1),sales=0,orders=new Set,products=new Set,regions={};for(let line of rows){let x=line.match(/(?:[^,"]+|"[^"]*")+/g);if(!x)continue;let n=+x[x.length-1].replace(/"/g,'');if(!Number.isFinite(n))continue;sales+=n;orders.add(x[1]);products.add(x[15]);let k=x[12];regions[k]=(regions[k]||0)+n}let money=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});document.querySelector('#sales').textContent=money.format(sales);document.querySelector('#orders').textContent=orders.size.toLocaleString();document.querySelector('#products').textContent=products.size.toLocaleString();document.querySelector('#regions').innerHTML=Object.entries(regions).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<tr><td>${k}</td><td>${money.format(v)}</td></tr>`).join('')}).catch(()=>document.querySelector('#sales').textContent='Dataset unavailable');</script></body></html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sales Performance Analysis</title><style>body{margin:0;font:16px system-ui;background:#07171a;color:#e8f5f2}main{max-width:1000px;margin:auto;padding:48px 24px}h1{font-size:clamp(2.4rem,7vw,4.5rem)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{background:#103037;border-radius:14px;padding:20px}.value{font-size:2rem;color:#5eead4}table{width:100%;border-collapse:collapse;margin-top:28px}td,th{padding:10px;border-bottom:1px solid #28515a;text-align:left}@media(max-width:600px){.grid{grid-template-columns:1fr}}</style></head><body><main><p>DATA ANALYTICS · LIVE CSV EXPLORER</p><h1>Sales Performance Analysis</h1><p>This page reads the committed retail-sales CSV directly in your browser—no server or database required.</p><section class="grid"><div class="card"><b>Revenue</b><div class="value" id="sales">Loading…</div></div><div class="card"><b>Orders</b><div class="value" id="orders">Loading…</div></div><div class="card"><b>Products</b><div class="value" id="products">Loading…</div></div></section><h2>Revenue by region</h2><table><thead><tr><th>Region</th><th>Sales</th></tr></thead><tbody id="regions"></tbody></table><p><a href="https://github.com/zubinkotecha22-ship-it/Sales-Performance-Analysis">View source on GitHub ↗</a></p></main><script>
+function parseCsv(text) {
+  const rows = [[]]; let field = "", quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i], next = text[i + 1];
+    if (char === '"') { if (quoted && next === '"') { field += '"'; i++; } else quoted = !quoted; }
+    else if (char === ',' && !quoted) { rows.at(-1).push(field); field = ""; }
+    else if ((char === '\n' || char === '\r') && !quoted) { if (char === '\r' && next === '\n') i++; rows.at(-1).push(field); field = ""; rows.push([]); }
+    else field += char;
+  }
+  if (field || rows.at(-1).length) rows.at(-1).push(field);
+  return rows.filter(row => row.length > 1);
+}
+fetch('train.csv').then(response => response.text()).then(text => {
+  const [header, ...rows] = parseCsv(text);
+  const column = Object.fromEntries(header.map((name, index) => [name, index]));
+  let sales = 0; const orders = new Set(), products = new Set(), regions = {};
+  for (const row of rows) {
+    const amount = Number(row[column.Sales]); if (!Number.isFinite(amount)) continue;
+    sales += amount; orders.add(row[column['Order ID']]); products.add(row[column['Product ID']]);
+    const region = row[column.Region]; regions[region] = (regions[region] || 0) + amount;
+  }
+  const money = new Intl.NumberFormat('en-US', {style:'currency', currency:'USD', maximumFractionDigits:0});
+  document.querySelector('#sales').textContent = money.format(sales);
+  document.querySelector('#orders').textContent = orders.size.toLocaleString();
+  document.querySelector('#products').textContent = products.size.toLocaleString();
+  document.querySelector('#regions').innerHTML = Object.entries(regions).sort((a,b) => b[1]-a[1]).map(([region, amount]) => '<tr><td>' + region + '</td><td>' + money.format(amount) + '</td></tr>').join('');
+}).catch(() => document.querySelector('#sales').textContent = 'Dataset unavailable');
+</script></body></html>
